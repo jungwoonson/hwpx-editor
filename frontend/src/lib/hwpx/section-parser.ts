@@ -177,8 +177,9 @@ function parseTableCell(tcNode: Record<string, unknown>): TableCell {
     bottom: getAttrNum(cellMarginNode ?? {}, 'bottom'),
   };
 
-  // subList 내부의 문단들 파싱
+  // subList 내부의 문단들 파싱 + vertAlign
   const subList = tcNode['subList'] as Record<string, unknown> | undefined;
+  const vertAlign = subList ? getAttr(subList, 'vertAlign') : 'TOP';
   const paragraphs: Paragraph[] = [];
 
   if (subList) {
@@ -197,6 +198,7 @@ function parseTableCell(tcNode: Record<string, unknown>): TableCell {
     width: getAttrNum(cellSz ?? {}, 'width'),
     height: getAttrNum(cellSz ?? {}, 'height'),
     borderFillIDRef: getAttrNum(tcNode, 'borderFillIDRef'),
+    vertAlign: vertAlign || 'TOP',
     cellMargin,
     paragraphs,
   };

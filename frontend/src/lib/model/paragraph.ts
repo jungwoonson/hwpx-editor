@@ -55,6 +55,7 @@ export interface TableCell {
   width: number; // hwpunit
   height: number;
   borderFillIDRef: number;
+  vertAlign: string; // TOP, CENTER, BOTTOM
   cellMargin: CellMargin;
   paragraphs: Paragraph[];
 }

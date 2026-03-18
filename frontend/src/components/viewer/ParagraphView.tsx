@@ -25,23 +25,22 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
   const style: React.CSSProperties = {
     textAlign,
     lineHeight,
-    marginLeft: paraShape?.margin.left ? hwpunitToPx(paraShape.margin.left) : undefined,
-    marginRight: paraShape?.margin.right ? hwpunitToPx(paraShape.margin.right) : undefined,
-    marginTop: paraShape?.margin.prev ? hwpunitToPx(paraShape.margin.prev) : undefined,
-    marginBottom: paraShape?.margin.next ? hwpunitToPx(paraShape.margin.next) : undefined,
+    marginLeft: paraShape?.margin.left ? hwpunitToPx(paraShape.margin.left) : 0,
+    marginRight: paraShape?.margin.right ? hwpunitToPx(paraShape.margin.right) : 0,
+    marginTop: paraShape?.margin.prev ? hwpunitToPx(paraShape.margin.prev) : 0,
+    marginBottom: paraShape?.margin.next ? hwpunitToPx(paraShape.margin.next) : 0,
     textIndent: paraShape?.margin.indent ? hwpunitToPx(paraShape.margin.indent) : undefined,
-    minHeight: '1em',
+    padding: 0,
+    wordBreak: 'keep-all',
   };
 
-  // 문단 테두리/배경 적용 (paraPr > border > borderFillIDRef)
+  // 문단 테두리/배경 적용
   if (paraShape?.border.borderFillIDRef) {
     const borderFill = styles.borderFills.get(paraShape.border.borderFillIDRef);
     if (borderFill) {
-      // 배경색
       if (borderFill.faceColor && borderFill.faceColor !== 'none') {
         style.backgroundColor = borderFill.faceColor;
       }
-      // 테두리
       if (borderFill.topBorder.type !== 'NONE') {
         style.borderTop = borderLineToCss(borderFill.topBorder);
       }
@@ -54,7 +53,6 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
       if (borderFill.rightBorder.type !== 'NONE') {
         style.borderRight = borderLineToCss(borderFill.rightBorder);
       }
-      // 테두리 오프셋 → padding
       if (paraShape.border.offsetTop || paraShape.border.offsetBottom ||
           paraShape.border.offsetLeft || paraShape.border.offsetRight) {
         style.paddingTop = hwpunitToPx(paraShape.border.offsetTop);
@@ -65,17 +63,21 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
     }
   }
 
-  // 빈 문단 처리
+  // 콘텐츠 유무 확인
   const hasContent = paragraph.runs.some(r =>
     r.contents.some(c => c.type === 'text' || c.type === 'table')
   );
+
+  // 빈 문단: 최소 높이만 줌 (셀 내부에서 불필요한 공간 차지 방지)
+  if (!hasContent) {
+    style.minHeight = '0.5em';
+  }
 
   return (
     <div style={style}>
       {paragraph.runs.map((run, i) => (
         <TextRunView key={i} run={run} />
       ))}
-      {!hasContent && <br />}
     </div>
   );
 }

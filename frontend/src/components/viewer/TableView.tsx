@@ -54,7 +54,8 @@ function CellView({ cell }: { cell: TableCell }) {
         borderRight,
         backgroundColor: bgColor,
         padding: `${hwpunitToPx(cell.cellMargin.top)}px ${hwpunitToPx(cell.cellMargin.right)}px ${hwpunitToPx(cell.cellMargin.bottom)}px ${hwpunitToPx(cell.cellMargin.left)}px`,
-        verticalAlign: 'middle',
+        verticalAlign: cell.vertAlign === 'CENTER' ? 'middle'
+          : cell.vertAlign === 'BOTTOM' ? 'bottom' : 'top',
       }}
     >
       {cell.paragraphs.map((p, i) => (
