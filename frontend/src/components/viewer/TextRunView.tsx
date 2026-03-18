@@ -1,7 +1,8 @@
 import type { TextRun, RunContent } from '../../lib/model';
 import { useStyleStore } from './StyleContext';
-import { charHeightToPt } from '../../utils/unit-converter';
+import { charHeightToPt, hwpunitToPx } from '../../utils/unit-converter';
 import { TableView } from './TableView';
+import { useImageUrl } from './ImageContext';
 
 const FONT_FALLBACKS: Record<string, string> = {
   '바탕': '"Noto Serif KR", "Batang", serif',
@@ -55,6 +56,8 @@ function RunContentView({ content }: { content: RunContent }) {
       return <span style={{ display: 'inline-block', width: '2em' }} />;
     case 'table':
       return <TableView table={content.table} />;
+    case 'image':
+      return <ImageView binaryItemIDRef={content.image.binaryItemIDRef} width={content.image.width} height={content.image.height} />;
     case 'nbSpace':
       return <>&nbsp;</>;
     case 'fwSpace':
@@ -66,4 +69,22 @@ function RunContentView({ content }: { content: RunContent }) {
     default:
       return null;
   }
+}
+
+function ImageView({ binaryItemIDRef, width, height }: { binaryItemIDRef: string; width: number; height: number }) {
+  const url = useImageUrl(binaryItemIDRef);
+  if (!url) return <span style={{ display: 'inline-block', width: hwpunitToPx(width), height: hwpunitToPx(height), backgroundColor: '#eee' }} />;
+
+  return (
+    <img
+      src={url}
+      alt=""
+      style={{
+        width: hwpunitToPx(width),
+        height: hwpunitToPx(height),
+        verticalAlign: 'bottom',
+        objectFit: 'contain',
+      }}
+    />
+  );
 }

@@ -18,6 +18,7 @@ export interface TextRun {
 export type RunContent =
   | { type: 'text'; value: string }
   | { type: 'table'; table: Table }
+  | { type: 'image'; image: ImageObject }
   | { type: 'lineBreak' }
   | { type: 'tab' }
   | { type: 'nbSpace' }
@@ -25,6 +26,14 @@ export type RunContent =
   | { type: 'columnDef'; colPr: unknown }
   | { type: 'secDef'; secPr: unknown }
   | { type: 'unknown'; tagName: string };
+
+/** 그림 (hp:pic) */
+export interface ImageObject {
+  binaryItemIDRef: string; // BinData/ 내 파일명 (예: "image1")
+  width: number; // 표시 크기 hwpunit
+  height: number;
+  treatAsChar: boolean;
+}
 
 /** 표 (hp:tbl) */
 export interface Table {

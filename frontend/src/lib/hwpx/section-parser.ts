@@ -1,7 +1,7 @@
 import { parseXml, ensureArray, getAttr, getAttrNum, getAttrBool } from '../../utils/xml-helpers';
 import type { Section, PageLayout, PageMargin } from '../model/section';
 import type {
-  Paragraph, TextRun, RunContent, Table, TableRow, TableCell, CellMargin,
+  Paragraph, TextRun, RunContent, Table, TableRow, TableCell, CellMargin, ImageObject,
 } from '../model/paragraph';
 
 /**
@@ -95,6 +95,26 @@ function parseRun(runNode: Record<string, unknown>): {
     const tblNode = runNode['tbl'] as Record<string, unknown>;
     const table = parseTable(tblNode);
     contents.push({ type: 'table', table });
+  }
+
+  // hp:pic (그림)
+  if (runNode['pic']) {
+    const picNode = runNode['pic'] as Record<string, unknown>;
+    const imgNode = picNode['img'] as Record<string, unknown> | undefined;
+    const szNode = picNode['sz'] as Record<string, unknown> | undefined;
+    const posNode = picNode['pos'] as Record<string, unknown> | undefined;
+    // curSz가 있으면 현재 크기 사용, 없으면 sz
+    const curSzNode = picNode['curSz'] as Record<string, unknown> | undefined;
+
+    if (imgNode) {
+      const image: ImageObject = {
+        binaryItemIDRef: getAttr(imgNode, 'binaryItemIDRef'),
+        width: getAttrNum(curSzNode ?? szNode ?? {}, 'width'),
+        height: getAttrNum(curSzNode ?? szNode ?? {}, 'height'),
+        treatAsChar: getAttrBool(posNode ?? {}, 'treatAsChar'),
+      };
+      contents.push({ type: 'image', image });
+    }
   }
 
   // hp:ctrl (컨트롤 — 단 정의 등, 현재는 스킵)

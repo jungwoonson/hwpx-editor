@@ -8,6 +8,7 @@ export type {
   TableRow,
   TableCell,
   CellMargin,
+  ImageObject,
 } from './paragraph';
 export type {
   CharacterShape,
