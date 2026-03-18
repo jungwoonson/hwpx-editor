@@ -6,16 +6,33 @@ import { hwpunitToPx, borderLineToCss } from '../../utils/unit-converter';
 export function TableView({ table }: { table: Table }) {
   const tableWidth = hwpunitToPx(table.width);
 
+  // 첫 행의 셀들에서 colgroup 너비 추출 (colSpan=1인 셀들만)
+  const colWidths: number[] = [];
+  if (table.rows.length > 0) {
+    for (const cell of table.rows[0].cells) {
+      if (cell.colSpan === 1 && cell.width) {
+        colWidths.push(hwpunitToPx(cell.width));
+      }
+    }
+  }
+
   return (
     <table
       style={{
         width: tableWidth,
         maxWidth: '100%',
         borderCollapse: 'collapse',
-        tableLayout: 'fixed',
+        tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
         margin: '4px 0',
       }}
     >
+      {colWidths.length > 0 && (
+        <colgroup>
+          {colWidths.map((w, i) => (
+            <col key={i} style={{ width: w }} />
+          ))}
+        </colgroup>
+      )}
       <tbody>
         {table.rows.map((row, ri) => (
           <tr key={ri}>
@@ -47,7 +64,6 @@ function CellView({ cell }: { cell: TableCell }) {
       colSpan={cell.colSpan > 1 ? cell.colSpan : undefined}
       rowSpan={cell.rowSpan > 1 ? cell.rowSpan : undefined}
       style={{
-        width: cell.width ? hwpunitToPx(cell.width) : undefined,
         borderTop,
         borderBottom,
         borderLeft,
@@ -56,6 +72,9 @@ function CellView({ cell }: { cell: TableCell }) {
         padding: `${hwpunitToPx(cell.cellMargin.top)}px ${hwpunitToPx(cell.cellMargin.right)}px ${hwpunitToPx(cell.cellMargin.bottom)}px ${hwpunitToPx(cell.cellMargin.left)}px`,
         verticalAlign: cell.vertAlign === 'CENTER' ? 'middle'
           : cell.vertAlign === 'BOTTOM' ? 'bottom' : 'top',
+        lineHeight: 1.3,
+        overflow: 'hidden',
+        wordBreak: 'keep-all',
       }}
     >
       {cell.paragraphs.map((p, i) => (
