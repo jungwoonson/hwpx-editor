@@ -1,6 +1,7 @@
 import type { Table, TableCell } from '../../lib/model';
 import { ParagraphView } from './ParagraphView';
-import { hwpunitToPx } from '../../utils/unit-converter';
+import { useStyleStore } from './StyleContext';
+import { hwpunitToPx, borderLineToCss } from '../../utils/unit-converter';
 
 export function TableView({ table }: { table: Table }) {
   const tableWidth = hwpunitToPx(table.width);
@@ -29,16 +30,31 @@ export function TableView({ table }: { table: Table }) {
 }
 
 function CellView({ cell }: { cell: TableCell }) {
+  const styles = useStyleStore();
+  const borderFill = styles.borderFills.get(cell.borderFillIDRef);
+
+  const bgColor = borderFill?.faceColor && borderFill.faceColor !== 'none'
+    ? borderFill.faceColor
+    : undefined;
+
+  const borderTop = borderFill ? borderLineToCss(borderFill.topBorder) : '1px solid #000';
+  const borderBottom = borderFill ? borderLineToCss(borderFill.bottomBorder) : '1px solid #000';
+  const borderLeft = borderFill ? borderLineToCss(borderFill.leftBorder) : '1px solid #000';
+  const borderRight = borderFill ? borderLineToCss(borderFill.rightBorder) : '1px solid #000';
+
   return (
     <td
       colSpan={cell.colSpan > 1 ? cell.colSpan : undefined}
       rowSpan={cell.rowSpan > 1 ? cell.rowSpan : undefined}
       style={{
         width: cell.width ? hwpunitToPx(cell.width) : undefined,
-        border: '1px solid #000',
+        borderTop,
+        borderBottom,
+        borderLeft,
+        borderRight,
+        backgroundColor: bgColor,
         padding: `${hwpunitToPx(cell.cellMargin.top)}px ${hwpunitToPx(cell.cellMargin.right)}px ${hwpunitToPx(cell.cellMargin.bottom)}px ${hwpunitToPx(cell.cellMargin.left)}px`,
         verticalAlign: 'middle',
-        fontSize: '9pt',
       }}
     >
       {cell.paragraphs.map((p, i) => (

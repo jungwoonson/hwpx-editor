@@ -158,11 +158,12 @@ export interface BorderFill {
   rightBorder: BorderLine;
   topBorder: BorderLine;
   bottomBorder: BorderLine;
+  faceColor: string; // 배경색 (#RRGGBB 또는 "none")
 }
 
 export interface BorderLine {
-  type: string; // NONE, SOLID, etc.
-  width: string; // "0.1 mm" etc.
+  type: string; // NONE, SOLID, DOUBLE_SLIM, DASH, etc.
+  width: string; // "0.1 mm", "0.4 mm" etc.
   color: string; // #RRGGBB
 }
 

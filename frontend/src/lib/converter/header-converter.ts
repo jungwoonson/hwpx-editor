@@ -358,6 +358,11 @@ export function convertHeader(xml: string): StyleStore {
   const borderFillList = ensureArray(borderFillsNode['borderFill'] as Rec | Rec[] | undefined);
 
   for (const bf of borderFillList) {
+    // fillBrush > winBrush 에서 배경색 추출
+    const fillBrush = bf['fillBrush'] as Rec | undefined;
+    const winBrush = fillBrush?.['winBrush'] as Rec | undefined;
+    const faceColor = winBrush ? getAttr(winBrush, 'faceColor') : 'none';
+
     const borderFill: BorderFill = {
       id: getAttrNum(bf, 'id'),
       threeD: getAttrBool(bf, 'threeD'),
@@ -366,6 +371,7 @@ export function convertHeader(xml: string): StyleStore {
       rightBorder: extractBorderLine(bf['rightBorder'] as Rec | undefined),
       topBorder: extractBorderLine(bf['topBorder'] as Rec | undefined),
       bottomBorder: extractBorderLine(bf['bottomBorder'] as Rec | undefined),
+      faceColor: faceColor || 'none',
     };
     borderFills.set(borderFill.id, borderFill);
   }

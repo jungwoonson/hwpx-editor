@@ -56,8 +56,9 @@ function RunContentView({ content }: { content: RunContent }) {
     case 'table':
       return <TableView table={content.table} />;
     case 'nbSpace':
-    case 'fwSpace':
       return <>&nbsp;</>;
+    case 'fwSpace':
+      return <span style={{ display: 'inline-block', width: '1em' }}>&nbsp;</span>;
     case 'secDef':
     case 'columnDef':
     case 'unknown':

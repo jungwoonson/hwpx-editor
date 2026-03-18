@@ -1,7 +1,7 @@
 import type { Paragraph } from '../../lib/model';
 import { useStyleStore } from './StyleContext';
 import { TextRunView } from './TextRunView';
-import { hwpunitToPx } from '../../utils/unit-converter';
+import { hwpunitToPx, borderLineToCss } from '../../utils/unit-converter';
 
 const ALIGN_MAP: Record<string, React.CSSProperties['textAlign']> = {
   JUSTIFY: 'justify',
@@ -32,6 +32,38 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
     textIndent: paraShape?.margin.indent ? hwpunitToPx(paraShape.margin.indent) : undefined,
     minHeight: '1em',
   };
+
+  // 문단 테두리/배경 적용 (paraPr > border > borderFillIDRef)
+  if (paraShape?.border.borderFillIDRef) {
+    const borderFill = styles.borderFills.get(paraShape.border.borderFillIDRef);
+    if (borderFill) {
+      // 배경색
+      if (borderFill.faceColor && borderFill.faceColor !== 'none') {
+        style.backgroundColor = borderFill.faceColor;
+      }
+      // 테두리
+      if (borderFill.topBorder.type !== 'NONE') {
+        style.borderTop = borderLineToCss(borderFill.topBorder);
+      }
+      if (borderFill.bottomBorder.type !== 'NONE') {
+        style.borderBottom = borderLineToCss(borderFill.bottomBorder);
+      }
+      if (borderFill.leftBorder.type !== 'NONE') {
+        style.borderLeft = borderLineToCss(borderFill.leftBorder);
+      }
+      if (borderFill.rightBorder.type !== 'NONE') {
+        style.borderRight = borderLineToCss(borderFill.rightBorder);
+      }
+      // 테두리 오프셋 → padding
+      if (paraShape.border.offsetTop || paraShape.border.offsetBottom ||
+          paraShape.border.offsetLeft || paraShape.border.offsetRight) {
+        style.paddingTop = hwpunitToPx(paraShape.border.offsetTop);
+        style.paddingBottom = hwpunitToPx(paraShape.border.offsetBottom);
+        style.paddingLeft = hwpunitToPx(paraShape.border.offsetLeft);
+        style.paddingRight = hwpunitToPx(paraShape.border.offsetRight);
+      }
+    }
+  }
 
   // 빈 문단 처리
   const hasContent = paragraph.runs.some(r =>
