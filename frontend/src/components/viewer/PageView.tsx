@@ -15,7 +15,9 @@ export function PageView({ section }: { section: Section }) {
   const paddingBottom = hwpunitToPx(pageLayout.margin.bottom);
   const paddingLeft = hwpunitToPx(pageLayout.margin.left);
   const paddingRight = hwpunitToPx(pageLayout.margin.right);
-  const contentHeight = pageHeight - paddingTop - paddingBottom;
+  const headerHeight = hwpunitToPx(pageLayout.margin.header);
+  const footerHeight = hwpunitToPx(pageLayout.margin.footer);
+  const contentHeight = pageHeight - paddingTop - paddingBottom - headerHeight - footerHeight;
 
   const measureRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<PageContent[]>([]);

@@ -23,7 +23,7 @@ export function TableView({ table }: { table: Table }) {
         maxWidth: '100%',
         borderCollapse: 'collapse',
         tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
-        margin: '4px 0',
+        margin: '0',
       }}
     >
       {colWidths.length > 0 && (
@@ -70,6 +70,7 @@ function CellView({ cell }: { cell: TableCell }) {
         borderRight,
         backgroundColor: bgColor,
         padding: `${hwpunitToPx(cell.cellMargin.top)}px ${hwpunitToPx(cell.cellMargin.right)}px ${hwpunitToPx(cell.cellMargin.bottom)}px ${hwpunitToPx(cell.cellMargin.left)}px`,
+        height: cell.height ? hwpunitToPx(cell.height) : undefined,
         verticalAlign: cell.vertAlign === 'CENTER' ? 'middle'
           : cell.vertAlign === 'BOTTOM' ? 'bottom' : 'top',
         lineHeight: 1.3,

@@ -70,7 +70,7 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
 
   // 빈 문단: 최소 높이만 줌 (셀 내부에서 불필요한 공간 차지 방지)
   if (!hasContent) {
-    style.minHeight = '0.5em';
+    style.minHeight = '0.2em';
   }
 
   return (
