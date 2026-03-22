@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Section, Paragraph } from '../../lib/model';
 import { ParagraphView } from './ParagraphView';
+import { Ruler } from './Ruler';
 import { hwpunitToPx } from '../../utils/unit-converter';
 
 interface PageContent {
@@ -110,6 +111,9 @@ export function PageView({ section }: { section: Section }) {
           <ParagraphView key={i} paragraph={p} />
         ))}
       </div>
+
+      {/* 눈금자 — 첫 페이지 위에 표시 */}
+      {measured && <Ruler pageLayout={pageLayout} />}
 
       {/* 2패스: 실제 페이지 렌더 */}
       {measured && pages.map((page, pageIdx) => (

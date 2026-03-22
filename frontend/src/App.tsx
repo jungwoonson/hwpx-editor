@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useHwpxDocument } from './hooks/useHwpxDocument';
 import { useEditor } from './hooks/useEditor';
 import { StyleProvider } from './components/viewer/StyleContext';
 import { EditorView } from './components/editor/EditorView';
 import { Toolbar } from './components/editor/Toolbar';
+import { StatusBar } from './components/common/StatusBar';
+import { Ruler } from './components/viewer/Ruler';
+import { hwpunitToPx } from './utils/unit-converter';
+import type { PageLayout } from './lib/model';
 import type { StyleStore } from './lib/model';
 
 /** 빈 문서용 기본 StyleStore */
@@ -66,7 +70,104 @@ type AppMode = 'idle' | 'viewer' | 'editor';
 function App() {
   const [dragOver, setDragOver] = useState(false);
   const [mode, setMode] = useState<AppMode>('idle');
+  const [insertMode, setInsertMode] = useState(true);
+  const [zoom, setZoom] = useState(100);
+  const [pageInfo, setPageInfo] = useState({ totalPages: 1, currentPage: 1 });
   const [editorStyles, setEditorStyles] = useState<StyleStore>(createDefaultStyles);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // main 가로 스크롤과 눈금자 동기화 (transform 방식)
+  const rulerInnerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const handleScroll = () => {
+      if (rulerInnerRef.current) {
+        rulerInnerRef.current.style.transform = `translateX(-${main.scrollLeft}px)`;
+      }
+    };
+    main.addEventListener('scroll', handleScroll);
+    return () => main.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // A4 기본 페이지 크기
+  const pageWidthPx = hwpunitToPx(59528);
+  const pageHeightPx = hwpunitToPx(84188);
+  const defaultPageLayout: PageLayout = {
+    width: 59528, height: 84188, landscape: 'NARROWLY', gutterType: 'LEFT_ONLY',
+    margin: { left: 8504, right: 8504, top: 5668, bottom: 4252, header: 4252, footer: 4252, gutter: 0 },
+  };
+
+  // baseScale: 100%일 때 페이지가 화면에 딱 맞는 CSS scale 값
+  const [baseScale, setBaseScale] = useState(1);
+
+  const calcBaseScale = useCallback(() => {
+    const el = mainRef.current;
+    if (!el) return 1;
+    const containerWidth = el.clientWidth - 32;
+    const containerHeight = el.clientHeight - 80;
+    const scaleW = containerWidth / pageWidthPx;
+    const scaleH = containerHeight / pageHeightPx;
+    return Math.min(scaleW, scaleH);
+  }, [pageWidthPx, pageHeightPx]);
+
+  // 줌 프리셋 값
+  const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200, 300];
+
+  // 실제 CSS zoom = (zoom / 100) * baseScale
+  const actualScale = (zoom / 100) * baseScale;
+
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => {
+      const next = ZOOM_PRESETS.find((v) => v > z);
+      return next ?? z;
+    });
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => {
+      const prev = [...ZOOM_PRESETS].reverse().find((v) => v < z);
+      return prev ?? z;
+    });
+  }, []);
+
+  const handleZoomSet = useCallback((value: number) => {
+    setZoom(value);
+  }, []);
+
+  const handleFitWidth = useCallback(() => {
+    const el = mainRef.current;
+    if (!el || baseScale === 0) return;
+    const containerWidth = el.clientWidth - 32;
+    const fitWidthPercent = (containerWidth / pageWidthPx / baseScale) * 100;
+    // 오버플로 없는 최대 프리셋 값
+    const best = [...ZOOM_PRESETS].reverse().find((v) => v <= fitWidthPercent);
+    setZoom(best ?? ZOOM_PRESETS[0]);
+  }, [pageWidthPx, baseScale]);
+
+  const handleFitPage = useCallback(() => {
+    setZoom(100);
+  }, []);
+
+  // 창 크기 변경 시 baseScale 재계산
+  useEffect(() => {
+    const handleResize = () => {
+      setBaseScale(calcBaseScale());
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [calcBaseScale]);
+
+  // Insert 키로 삽입/수정 모드 토글
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Insert') {
+        setInsertMode((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const { loading, error, document, loadFile, loadBuffer } = useHwpxDocument();
   const { state: editorState, dispatch, loadDocument } = useEditor();
 
@@ -95,6 +196,15 @@ function App() {
     }
   }, [document, loadDocument]);
 
+  // 에디터 모드 진입 시 baseScale 계산
+  useEffect(() => {
+    if (mode === 'editor') {
+      requestAnimationFrame(() => {
+        setBaseScale(calcBaseScale());
+      });
+    }
+  }, [mode, calcBaseScale]);
+
   const handleFileSelect = (file: File) => {
     loadFile(file);
   };
@@ -120,24 +230,38 @@ function App() {
   }, [loadDocument]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100">
-      <header className="bg-white shadow-sm px-6 py-3 flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-gray-800">HWPX Editor</h1>
+    <div className="flex flex-col h-screen bg-gray-100" style={{ overflow: 'hidden' }}>
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        height: 28,
+        padding: '0 8px',
+        backgroundColor: '#f5f6f7',
+        borderBottom: '1px solid #ddd',
+        flexShrink: 0,
+        fontSize: 12,
+      }}>
+        <span style={{ fontWeight: 600, color: '#333' }}>HWPX Editor</span>
         {mode === 'editor' && (
-          <span className="text-sm text-gray-500">
-            {document?.meta.title || '새 문서'}
-          </span>
+          <span style={{ color: '#888' }}>{document?.meta.title || '새 문서'}</span>
         )}
-        <div className="ml-auto flex gap-2">
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
           <button
             onClick={handleNewDocument}
-            className="px-4 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 cursor-pointer"
+            style={{
+              padding: '2px 10px', backgroundColor: '#4abe4a', color: '#fff',
+              fontSize: 11, borderRadius: 3, border: 'none', cursor: 'pointer',
+            }}
           >
             새 문서
           </button>
           <label
             htmlFor="file-input"
-            className="px-4 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 cursor-pointer"
+            style={{
+              padding: '2px 10px', backgroundColor: '#4a8fdb', color: '#fff',
+              fontSize: 11, borderRadius: 3, cursor: 'pointer',
+            }}
           >
             파일 열기
           </label>
@@ -146,8 +270,14 @@ function App() {
       </header>
 
       {mode === 'editor' && <Toolbar />}
-
-      <main className="flex-1 overflow-auto">
+      {mode === 'editor' && (
+        <div style={{ backgroundColor: '#e5e7eb', flexShrink: 0, padding: '6px 16px', overflow: 'hidden', scrollbarGutter: 'stable' }}>
+          <div ref={rulerInnerRef}>
+            <Ruler pageLayout={defaultPageLayout} scale={actualScale} />
+          </div>
+        </div>
+      )}
+      <main ref={mainRef} className="flex-1 overflow-auto" style={mode === 'editor' ? { backgroundColor: '#e5e7eb', scrollbarGutter: 'stable' } : undefined}>
         {loading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-500">문서를 불러오는 중...</div>
@@ -193,15 +323,28 @@ function App() {
         {mode === 'editor' && (
           <div style={{ padding: '16px', backgroundColor: '#e5e7eb', minHeight: '100%' }}>
             <StyleProvider store={editorStyles}>
-              <EditorView state={editorState} dispatch={dispatch} />
+              <EditorView state={editorState} dispatch={dispatch} zoom={actualScale * 100} onPageInfo={setPageInfo} />
             </StyleProvider>
           </div>
         )}
       </main>
 
-      <footer className="text-center text-xs text-gray-400 py-3 bg-white border-t">
-        본 제품은 한글과컴퓨터의 한글 문서 파일(.hwp) 공개 문서를 참고하여 개발하였습니다.
-      </footer>
+      {mode === 'editor' && (
+        <StatusBar
+          totalPages={pageInfo.totalPages}
+          currentPage={pageInfo.currentPage}
+          charCount={editorState.paragraphs.reduce((sum, p) => sum + p.runs.reduce((rs, r) => rs + r.contents.reduce((cs, c) => cs + (c.type === 'text' ? c.value.length : 0), 0), 0), 0)}
+          sectionCount={document?.sections.length ?? 1}
+          currentSection={1}
+          insertMode={insertMode}
+          zoom={zoom}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomSet={handleZoomSet}
+          onFitWidth={handleFitWidth}
+          onFitPage={handleFitPage}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,19 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { EditableParagraph } from './EditableParagraph';
+import { Ruler } from '../viewer/Ruler';
 import { hwpunitToPx } from '../../utils/unit-converter';
 import type { EditorState, EditorAction, CursorPosition } from '../../lib/editor/document';
+import type { PageLayout } from '../../lib/model';
 
 interface EditorViewProps {
   state: EditorState;
   dispatch: React.Dispatch<EditorAction>;
+  zoom?: number;
+  onPageInfo?: (info: { totalPages: number; currentPage: number }) => void;
+}
+
+interface PageContent {
+  paragraphIndices: number[];
 }
 
 // HWP 기본 A4 페이지 설정 (hwpunit)
@@ -27,11 +35,75 @@ const DEFAULT_PAGE = {
   paddingRight: hwpunitToPx(DEFAULT_PAGE_HWPUNIT.marginRight),
 };
 
-export function EditorView({ state, dispatch }: EditorViewProps) {
+const DEFAULT_PAGE_LAYOUT: PageLayout = {
+  width: DEFAULT_PAGE_HWPUNIT.width,
+  height: DEFAULT_PAGE_HWPUNIT.height,
+  landscape: 'NARROWLY',
+  gutterType: 'LEFT_ONLY',
+  margin: {
+    left: DEFAULT_PAGE_HWPUNIT.marginLeft,
+    right: DEFAULT_PAGE_HWPUNIT.marginRight,
+    top: DEFAULT_PAGE_HWPUNIT.marginTop,
+    bottom: DEFAULT_PAGE_HWPUNIT.marginBottom,
+    header: 4252,
+    footer: 4252,
+    gutter: 0,
+  },
+};
+
+export function EditorView({ state, dispatch, zoom = 100, onPageInfo }: EditorViewProps) {
+  const scale = zoom / 100;
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const composingRef = useRef(false);
   const [composingText, setComposingText] = useState('');
+  const [pages, setPages] = useState<PageContent[]>([{ paragraphIndices: [] }]);
+
+  const contentHeight = DEFAULT_PAGE.height - DEFAULT_PAGE.paddingTop - DEFAULT_PAGE.paddingBottom;
+
+  // 문단 높이 측정 후 페이지 분할
+  useEffect(() => {
+    const container = measureRef.current;
+    if (!container) return;
+
+    requestAnimationFrame(() => {
+      const children = Array.from(container.children) as HTMLElement[];
+      const result: PageContent[] = [];
+      let currentPage: number[] = [];
+      let usedHeight = 0;
+
+      children.forEach((child, idx) => {
+        const childHeight = child.getBoundingClientRect().height;
+
+        if (usedHeight > 0 && usedHeight + childHeight > contentHeight) {
+          result.push({ paragraphIndices: currentPage });
+          currentPage = [];
+          usedHeight = 0;
+        }
+
+        currentPage.push(idx);
+        usedHeight += childHeight;
+      });
+
+      if (currentPage.length > 0 || result.length === 0) {
+        result.push({ paragraphIndices: currentPage });
+      }
+
+      setPages(result);
+
+      // 현재 커서가 어느 페이지에 있는지 계산
+      const cursorParaIdx = state.cursor.paraIndex;
+      let currentPageNum = 1;
+      for (let i = 0; i < result.length; i++) {
+        if (result[i].paragraphIndices.includes(cursorParaIdx)) {
+          currentPageNum = i + 1;
+          break;
+        }
+      }
+      onPageInfo?.({ totalPages: result.length, currentPage: currentPageNum });
+    });
+  }, [state.paragraphs, state.cursor.paraIndex, contentHeight, onPageInfo]);
 
   const focusTextarea = useCallback(() => {
     textareaRef.current?.focus();
@@ -161,11 +233,10 @@ export function EditorView({ state, dispatch }: EditorViewProps) {
 
   const pageStyle: React.CSSProperties = {
     width: DEFAULT_PAGE.width,
-    maxWidth: '100%',
-    minHeight: DEFAULT_PAGE.height,
+    height: DEFAULT_PAGE.height,
     backgroundColor: '#fff',
     boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-    margin: '24px auto',
+    margin: `${12 / scale}px auto`,
     paddingTop: DEFAULT_PAGE.paddingTop,
     paddingBottom: DEFAULT_PAGE.paddingBottom,
     paddingLeft: DEFAULT_PAGE.paddingLeft,
@@ -174,6 +245,7 @@ export function EditorView({ state, dispatch }: EditorViewProps) {
     position: 'relative',
     borderRadius: 2,
     cursor: 'text',
+    overflow: 'hidden',
   };
 
   return (
@@ -208,18 +280,74 @@ export function EditorView({ state, dispatch }: EditorViewProps) {
         autoCapitalize="off"
         spellCheck={false}
       />
-      <div style={pageStyle}>
+      {/* 숨겨진 측정 컨테이너 */}
+      <div
+        ref={measureRef}
+        style={{
+          width: DEFAULT_PAGE.width - DEFAULT_PAGE.paddingLeft - DEFAULT_PAGE.paddingRight,
+          position: 'absolute',
+          visibility: 'hidden',
+          pointerEvents: 'none',
+          left: -9999,
+        }}
+      >
         {state.paragraphs.map((para, pi) => (
           <EditableParagraph
             key={pi}
             paragraph={para}
             paraIndex={pi}
-            cursor={state.cursor.paraIndex === pi ? state.cursor : null}
-            composingText={state.cursor.paraIndex === pi ? composingText : ''}
+            cursor={null}
+            composingText=""
           />
         ))}
       </div>
+
+      {/* 실제 페이지 렌더링 */}
+      <div style={{ zoom: scale }}>
+      {pages.map((page, pageIdx) => (
+        <div key={pageIdx} style={pageStyle}>
+          <CropMarks />
+          {page.paragraphIndices.map((pi) => {
+            const para = state.paragraphs[pi];
+            if (!para) return null;
+            return (
+              <EditableParagraph
+                key={pi}
+                paragraph={para}
+                paraIndex={pi}
+                cursor={state.cursor.paraIndex === pi ? state.cursor : null}
+                composingText={state.cursor.paraIndex === pi ? composingText : ''}
+              />
+            );
+          })}
+        </div>
+      ))}
+      </div>
     </div>
+  );
+}
+
+/** 페이지 여백 경계 L자 마크 */
+function CropMarks() {
+  const markLen = 10;
+  const color = '#bbb';
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    width: markLen,
+    height: markLen,
+    pointerEvents: 'none',
+  };
+  return (
+    <>
+      {/* 좌상 */}
+      <div style={{ ...base, top: 0, left: 0, borderLeft: `1px solid ${color}`, borderTop: `1px solid ${color}` }} />
+      {/* 우상 */}
+      <div style={{ ...base, top: 0, right: 0, borderRight: `1px solid ${color}`, borderTop: `1px solid ${color}` }} />
+      {/* 좌하 */}
+      <div style={{ ...base, bottom: 0, left: 0, borderLeft: `1px solid ${color}`, borderBottom: `1px solid ${color}` }} />
+      {/* 우하 */}
+      <div style={{ ...base, bottom: 0, right: 0, borderRight: `1px solid ${color}`, borderBottom: `1px solid ${color}` }} />
+    </>
   );
 }
 

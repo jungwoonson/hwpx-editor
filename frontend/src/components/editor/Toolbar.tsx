@@ -20,11 +20,11 @@ function MenuBar() {
       display: 'flex',
       alignItems: 'center',
       borderBottom: '1px solid #ddd',
-      height: 30,
+      height: 24,
       padding: '0 2px',
     }}>
       {menus.map((m) => (
-        <button key={m} className="toolbar-btn" style={{ padding: '4px 14px', fontSize: 13 }}>
+        <button key={m} className="toolbar-btn" style={{ padding: '2px 12px', fontSize: 12 }}>
           {m}
         </button>
       ))}
@@ -89,7 +89,7 @@ function IconToolbar() {
       borderBottom: '1px solid #ddd',
       padding: '3px 4px 2px',
       gap: 0,
-      minHeight: 56,
+      minHeight: 60,
     }}>
       {groups.map((group, gi) => (
         <div key={gi} style={{ display: 'flex', alignItems: 'flex-end', gap: 0 }}>
@@ -103,8 +103,8 @@ function IconToolbar() {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  minWidth: 36,
-                  height: 50,
+                  minWidth: 34,
+                  height: 54,
                   padding: '2px 3px 1px',
                   gap: 1,
                 }}
@@ -148,7 +148,7 @@ function FormatBar() {
       alignItems: 'center',
       padding: '2px 4px',
       gap: 3,
-      height: 30,
+      height: 26,
     }}>
       {/* 실행취소/다시실행 */}
       <SmallBtn title="실행 취소">↩</SmallBtn>
@@ -239,9 +239,9 @@ function IconBox({ children, color, style }: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: 26,
-      height: 26,
-      fontSize: 16,
+      width: 22,
+      height: 22,
+      fontSize: 14,
       color: color || '#555',
       ...style,
     }}>
