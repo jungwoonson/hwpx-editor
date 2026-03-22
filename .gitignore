@@ -19,3 +19,5 @@ dist/
 docs/sample/
 sample/
 frontend/public/samples/
+frontend/e2e/screenshots/
+frontend/test-results/
