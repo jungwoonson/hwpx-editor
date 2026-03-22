@@ -168,10 +168,26 @@ export interface BorderLine {
 }
 
 /** 모든 스타일을 모아놓은 저장소 */
+/** 탭 정의 (hh:tabPr) */
+export interface TabProperty {
+  id: number;
+  autoTabLeft: boolean;
+  autoTabRight: boolean;
+  items: TabItem[];
+}
+
+/** 탭 정지점 (hh:tabItem) */
+export interface TabItem {
+  pos: number;     // HWPUNIT
+  type: string;    // LEFT, CENTER, RIGHT, DECIMAL
+  leader: string;  // NONE, DASH, DOT, SOLID
+}
+
 export interface StyleStore {
   charShapes: Map<number, CharacterShape>;
   paraShapes: Map<number, ParagraphShape>;
   fonts: Map<string, Map<number, FontInfo>>; // lang → (id → FontInfo)
   styles: Map<number, StyleDefinition>;
   borderFills: Map<number, BorderFill>;
+  tabProperties: Map<number, TabProperty>;
 }

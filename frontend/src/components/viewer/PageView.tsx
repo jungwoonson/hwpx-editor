@@ -15,9 +15,8 @@ export function PageView({ section }: { section: Section }) {
   const paddingBottom = hwpunitToPx(pageLayout.margin.bottom);
   const paddingLeft = hwpunitToPx(pageLayout.margin.left);
   const paddingRight = hwpunitToPx(pageLayout.margin.right);
-  const headerHeight = hwpunitToPx(pageLayout.margin.header);
-  const footerHeight = hwpunitToPx(pageLayout.margin.footer);
-  const contentHeight = pageHeight - paddingTop - paddingBottom - headerHeight - footerHeight;
+  // 규칙 5: 머리말/꼬리말은 여백 안에 위치 — 추가로 빼지 않음
+  const contentHeight = pageHeight - paddingTop - paddingBottom;
 
   const measureRef = useRef<HTMLDivElement>(null);
   const [pages, setPages] = useState<PageContent[]>([]);
@@ -36,6 +35,13 @@ export function PageView({ section }: { section: Section }) {
       const childHeight = child.getBoundingClientRect().height;
       const paragraph = section.paragraphs[idx];
       if (!paragraph) return;
+
+      // pageBreak 플래그가 있으면 새 페이지에서 시작
+      if (paragraph.pageBreak && currentPage.length > 0) {
+        result.push({ paragraphs: currentPage });
+        currentPage = [];
+        usedHeight = 0;
+      }
 
       // 현재 페이지에 남은 공간이 부족하면 새 페이지로
       if (usedHeight > 0 && usedHeight + childHeight > contentHeight) {
@@ -107,7 +113,7 @@ export function PageView({ section }: { section: Section }) {
 
       {/* 2패스: 실제 페이지 렌더 */}
       {measured && pages.map((page, pageIdx) => (
-        <div key={pageIdx} style={pageStyle}>
+        <div key={pageIdx} data-testid={`page-${pageIdx}`} style={pageStyle}>
           {page.paragraphs.map((p, i) => (
             <ParagraphView key={i} paragraph={p} />
           ))}

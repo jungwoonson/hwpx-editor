@@ -18,12 +18,10 @@ export function useHwpxDocument() {
     document: null,
   });
 
-  const loadFile = useCallback(async (file: File) => {
+  const loadBuffer = useCallback(async (buffer: ArrayBuffer) => {
     setState({ loading: true, error: null, document: null });
 
     try {
-      const buffer = await file.arrayBuffer();
-
       // 1. ZIP 해제
       const files = extractHwpx(buffer);
 
@@ -65,5 +63,10 @@ export function useHwpxDocument() {
     }
   }, []);
 
-  return { ...state, loadFile };
+  const loadFile = useCallback(async (file: File) => {
+    const buffer = await file.arrayBuffer();
+    return loadBuffer(buffer);
+  }, [loadBuffer]);
+
+  return { ...state, loadFile, loadBuffer };
 }

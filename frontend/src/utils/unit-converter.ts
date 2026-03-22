@@ -53,25 +53,37 @@ export function borderWidthToPx(width: string): number {
 }
 
 /**
- * HWPX border type → CSS border-style
+ * 규칙 13: HWP border type → CSS border-style 완전 매핑 (중앙 관리)
  */
+const BORDER_TYPE_MAP: Record<string, string> = {
+  NONE: 'none',
+  SOLID: 'solid',
+  DASH: 'dashed',
+  DOT: 'dotted',
+  DASH_DOT: 'dashed',
+  DASH_DOT_DOT: 'dotted',
+  DOUBLE_SLIM: 'double',
+  DOUBLE_THICK: 'double',
+  THICK_THIN: 'double',
+  THIN_THICK: 'double',
+  THICK_THIN_THICK: 'double',
+  WAVE: 'solid',           // CSS에 wave 없음 → solid 대체
+  DOUBLE_WAVE: 'double',
+  THICK: 'solid',
+  THIN: 'solid',
+};
+
 export function borderTypeToCss(type: string): string {
-  switch (type) {
-    case 'SOLID': return 'solid';
-    case 'DASH': return 'dashed';
-    case 'DOT': return 'dotted';
-    case 'DOUBLE_SLIM': return 'double';
-    case 'NONE': return 'none';
-    default: return 'solid';
-  }
+  return BORDER_TYPE_MAP[type] ?? 'solid';
 }
 
 /**
  * BorderLine → CSS border shorthand
  */
+// 규칙 7: 서브픽셀 허용, 정수 반올림 금지. 최소 0.5px
 export function borderLineToCss(border: { type: string; width: string; color: string }): string {
   if (border.type === 'NONE') return 'none';
-  const px = Math.max(1, Math.round(borderWidthToPx(border.width)));
+  const px = Math.max(0.5, borderWidthToPx(border.width));
   const style = borderTypeToCss(border.type);
   return `${px}px ${style} ${border.color}`;
 }

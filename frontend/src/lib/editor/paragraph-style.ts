@@ -1,7 +1,5 @@
-import type { Paragraph } from '../../lib/model';
-import { useStyleStore } from './StyleContext';
-import { TextRunView } from './TextRunView';
-import { hwpunitToPx, charHeightToPx, charHeightToPt, borderLineToCss } from '../../utils/unit-converter';
+import type { Paragraph, StyleStore } from '../model';
+import { hwpunitToPx, charHeightToPx, borderLineToCss } from '../../utils/unit-converter';
 
 const ALIGN_MAP: Record<string, React.CSSProperties['textAlign']> = {
   JUSTIFY: 'justify',
@@ -10,13 +8,15 @@ const ALIGN_MAP: Record<string, React.CSSProperties['textAlign']> = {
   CENTER: 'center',
 };
 
-export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
-  const styles = useStyleStore();
+/** 문단 스타일 계산 (ParagraphView와 EditableParagraph에서 공용) */
+export function computeParagraphStyle(
+  paragraph: Paragraph,
+  styles: StyleStore,
+): React.CSSProperties {
   const paraShape = styles.paraShapes.get(paragraph.paraPrIDRef);
 
   const textAlign = ALIGN_MAP[paraShape?.align.horizontal ?? 'JUSTIFY'] ?? 'justify';
 
-  // 규칙 1: lineSpacing 모든 타입 처리 (하드코딩 금지)
   const lineHeight = (() => {
     if (!paraShape) return undefined;
     const { type, value } = paraShape.lineSpacing;
@@ -26,14 +26,13 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
       case 'FIXED':
         return `${hwpunitToPx(value)}px`;
       case 'BETWEEN_LINES': {
-        // 줄 사이 간격(hwpunit) → 폰트 크기 + 간격
         const firstCharPrId = paragraph.runs[0]?.charPrIDRef ?? 0;
         const cs = styles.charShapes.get(firstCharPrId);
         const fontPx = cs ? charHeightToPx(cs.height) : 10;
         return `${fontPx + hwpunitToPx(value)}px`;
       }
       case 'AT_LEAST':
-        return `${hwpunitToPx(value)}px`; // CSS line-height를 최소값으로 사용
+        return `${hwpunitToPx(value)}px`;
       default:
         return undefined;
     }
@@ -80,30 +79,22 @@ export function ParagraphView({ paragraph }: { paragraph: Paragraph }) {
     }
   }
 
-  // 콘텐츠 유무 확인 (위반 8: image도 콘텐츠로 인식)
-  const hasContent = paragraph.runs.some(r =>
-    r.contents.some(c => c.type === 'text' || c.type === 'table' || c.type === 'image')
-  );
+  return style;
+}
 
-  // 빈 문단: CSS에서 빈 div는 높이 0. 한 줄 높이를 확보해야 함.
-  // 셀 안에서는 wrapper div가 overflow:hidden으로 클리핑하므로 문제없음.
-  if (!hasContent) {
-    const firstCharPrId = paragraph.runs[0]?.charPrIDRef ?? 0;
-    const charShape = styles.charShapes.get(firstCharPrId);
-    const fontPx = charShape ? charHeightToPx(charShape.height) : 13;
-    const lhValue = lineHeight
-      ? (typeof lineHeight === 'string' && lineHeight.endsWith('px')
-        ? parseFloat(lineHeight)
-        : parseFloat(lineHeight as string) * fontPx)
-      : fontPx * 1.6;
-    style.minHeight = `${lhValue}px`;
-  }
-
-  return (
-    <div style={style}>
-      {paragraph.runs.map((run, i) => (
-        <TextRunView key={i} run={run} paraPrIDRef={paragraph.paraPrIDRef} />
-      ))}
-    </div>
-  );
+/** 빈 문단의 최소 높이 계산 */
+export function computeEmptyParagraphMinHeight(
+  paragraph: Paragraph,
+  styles: StyleStore,
+  lineHeight: string | undefined,
+): number {
+  const firstCharPrId = paragraph.runs[0]?.charPrIDRef ?? 0;
+  const charShape = styles.charShapes.get(firstCharPrId);
+  const fontPx = charShape ? charHeightToPx(charShape.height) : 13;
+  const lhValue = lineHeight
+    ? (typeof lineHeight === 'string' && lineHeight.endsWith('px')
+      ? parseFloat(lineHeight)
+      : parseFloat(lineHeight as string) * fontPx)
+    : fontPx * 1.6;
+  return lhValue;
 }

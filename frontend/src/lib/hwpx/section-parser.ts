@@ -1,7 +1,7 @@
 import { parseXml, ensureArray, getAttr, getAttrNum, getAttrBool } from '../../utils/xml-helpers';
 import type { Section, PageLayout, PageMargin } from '../model/section';
 import type {
-  Paragraph, TextRun, RunContent, Table, TableRow, TableCell, CellMargin, ImageObject,
+  Paragraph, TextRun, RunContent, Table, TableRow, TableCell, CellMargin, ImageObject, ObjectPosition,
 } from '../model/paragraph';
 
 /**
@@ -107,11 +107,13 @@ function parseRun(runNode: Record<string, unknown>): {
     const curSzNode = picNode['curSz'] as Record<string, unknown> | undefined;
 
     if (imgNode) {
+      const pos = posNode ? parseObjectPosition(posNode) : undefined;
       const image: ImageObject = {
         binaryItemIDRef: getAttr(imgNode, 'binaryItemIDRef'),
         width: getAttrNum(curSzNode ?? szNode ?? {}, 'width'),
         height: getAttrNum(curSzNode ?? szNode ?? {}, 'height'),
         treatAsChar: getAttrBool(posNode ?? {}, 'treatAsChar'),
+        pos,
       };
       contents.push({ type: 'image', image });
     }
@@ -221,6 +223,19 @@ function parseTableCell(tcNode: Record<string, unknown>): TableCell {
     vertAlign: vertAlign || 'TOP',
     cellMargin,
     paragraphs,
+  };
+}
+
+/** 규칙 9: 객체 위치 정보 파싱 */
+function parseObjectPosition(posNode: Record<string, unknown>): ObjectPosition {
+  return {
+    treatAsChar: getAttrBool(posNode, 'treatAsChar'),
+    vertRelTo: getAttr(posNode, 'vertRelTo') || undefined,
+    horzRelTo: getAttr(posNode, 'horzRelTo') || undefined,
+    vertAlign: getAttr(posNode, 'vertAlign') || undefined,
+    horzAlign: getAttr(posNode, 'horzAlign') || undefined,
+    vertOffset: getAttrNum(posNode, 'vertOffset') || 0,
+    horzOffset: getAttrNum(posNode, 'horzOffset') || 0,
   };
 }
 

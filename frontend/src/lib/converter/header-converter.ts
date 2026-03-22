@@ -25,6 +25,8 @@ import type {
   ParagraphMargin,
   LineSpacingInfo,
   ParagraphBorder,
+  TabProperty,
+  TabItem,
 } from '../model/styles';
 
 type Rec = Record<string, unknown>;
@@ -395,5 +397,27 @@ export function convertHeader(xml: string): StyleStore {
     styles.set(styleDef.id, styleDef);
   }
 
-  return { charShapes, paraShapes, fonts, styles, borderFills };
+  // ---- tabProperties ----
+  const tabProperties = new Map<number, TabProperty>();
+  const tabPropertiesNode = refList['tabProperties'] as Rec | undefined ?? {};
+  const tabPrList = ensureArray(tabPropertiesNode['tabPr'] as Rec | Rec[] | undefined);
+
+  for (const tabPr of tabPrList) {
+    const id = getAttrNum(tabPr, 'id');
+    const autoTabLeft = getAttrBool(tabPr, 'autoTabLeft');
+    const autoTabRight = getAttrBool(tabPr, 'autoTabRight');
+
+    // tabItem은 hp:switch 래퍼 안에 있을 수 있음
+    const unwrapped = unwrapSwitch(tabPr);
+    const tabItemNodes = ensureArray(unwrapped['tabItem'] as Rec | Rec[] | undefined);
+    const items: TabItem[] = tabItemNodes.map((item) => ({
+      pos: getAttrNum(item, 'pos'),
+      type: getAttr(item, 'type') || 'LEFT',
+      leader: getAttr(item, 'leader') || 'NONE',
+    }));
+
+    tabProperties.set(id, { id, autoTabLeft, autoTabRight, items });
+  }
+
+  return { charShapes, paraShapes, fonts, styles, borderFills, tabProperties };
 }

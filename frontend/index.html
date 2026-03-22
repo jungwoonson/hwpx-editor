@@ -4,7 +4,31 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>hwpx-vite-init</title>
+    <title>HWPX Viewer</title>
+    <!-- Google Fonts: Noto Serif KR, Noto Sans KR (함초롬/한컴 폰트 미설치 환경용 fallback) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&family=Noto+Serif+KR:wght@200..900&display=swap" rel="stylesheet" />
+    <style>
+      @keyframes editor-cursor-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      .editor-cursor {
+        animation: editor-cursor-blink 1s step-end infinite;
+      }
+      .toolbar-btn {
+        background: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        border-radius: 3px;
+        color: #444;
+      }
+      .toolbar-btn:hover {
+        background-color: #e2e6ea;
+        border-color: #c0c4c8;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

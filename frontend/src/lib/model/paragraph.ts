@@ -27,12 +27,24 @@ export type RunContent =
   | { type: 'secDef'; secPr: unknown }
   | { type: 'unknown'; tagName: string };
 
+/** 객체 위치 정보 (hp:pos) */
+export interface ObjectPosition {
+  treatAsChar: boolean;
+  vertRelTo?: string;   // PAGE, PARA, LINE
+  horzRelTo?: string;   // PAGE, PARA, COLUMN
+  vertAlign?: string;   // TOP, CENTER, BOTTOM
+  horzAlign?: string;   // LEFT, CENTER, RIGHT
+  vertOffset?: number;  // hwpunit
+  horzOffset?: number;  // hwpunit
+}
+
 /** 그림 (hp:pic) */
 export interface ImageObject {
   binaryItemIDRef: string; // BinData/ 내 파일명 (예: "image1")
   width: number; // 표시 크기 hwpunit
   height: number;
   treatAsChar: boolean;
+  pos?: ObjectPosition;
 }
 
 /** 표 (hp:tbl) */

@@ -6,12 +6,12 @@ import { hwpunitToPx, borderLineToCss } from '../../utils/unit-converter';
 export function TableView({ table }: { table: Table }) {
   const tableWidth = hwpunitToPx(table.width);
 
-  // 첫 행의 셀들에서 colgroup 너비 추출 (colSpan=1인 셀들만)
-  const colWidths: number[] = [];
-  if (table.rows.length > 0) {
-    for (const cell of table.rows[0].cells) {
-      if (cell.colSpan === 1 && cell.width) {
-        colWidths.push(hwpunitToPx(cell.width));
+  // 규칙 4: 전체 행 순회, colAddr 기반으로 컬럼 너비 매핑
+  const colWidths: number[] = new Array(table.colCnt).fill(0);
+  for (const row of table.rows) {
+    for (const cell of row.cells) {
+      if (cell.colSpan === 1 && cell.width && colWidths[cell.colAddr] === 0) {
+        colWidths[cell.colAddr] = hwpunitToPx(cell.width);
       }
     }
   }
@@ -20,13 +20,14 @@ export function TableView({ table }: { table: Table }) {
     <table
       style={{
         width: tableWidth,
+        height: table.height ? hwpunitToPx(table.height) : undefined,
         maxWidth: '100%',
         borderCollapse: 'collapse',
-        tableLayout: colWidths.length > 0 ? 'fixed' : 'auto',
+        tableLayout: colWidths.some(w => w > 0) ? 'fixed' : 'auto',
         margin: '0',
       }}
     >
-      {colWidths.length > 0 && (
+      {colWidths.some(w => w > 0) && (
         <colgroup>
           {colWidths.map((w, i) => (
             <col key={i} style={{ width: w }} />
@@ -73,7 +74,6 @@ function CellView({ cell }: { cell: TableCell }) {
         height: cell.height ? hwpunitToPx(cell.height) : undefined,
         verticalAlign: cell.vertAlign === 'CENTER' ? 'middle'
           : cell.vertAlign === 'BOTTOM' ? 'bottom' : 'top',
-        lineHeight: 1.3,
         overflow: 'hidden',
         wordBreak: 'keep-all',
       }}
